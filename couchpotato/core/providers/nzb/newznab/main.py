@@ -26,10 +26,10 @@ class Newznab(NZBProvider, RSS):
     limits_reached = {}
 
     cat_ids = [
-        ([1000], ['dvdr', 'cam', 'ts', 'dvdrip', 'brrip', 'tc', 'r5', 'scr', '720p', '1080p', 'bd50']),
-        ([2000], ['dvdr', 'cam', 'ts', 'dvdrip', 'brrip', 'tc', 'r5', 'scr', '720p', '1080p', 'bd50']),
+        ([1000], ['dvdr', 'cam', 'ts', 'dvdrip', 'brrip', 'tc', 'r5', 'scr', '720p', '1080p', 'bd50', '3D']),
+        ([2000], ['dvdr', 'cam', 'ts', 'dvdrip', 'brrip', 'tc', 'r5', 'scr', '720p', '1080p', 'bd50', '3D']),
     ]
-    cat_backup_id = 2000
+    cat_backup_id = 1000
 
     http_time_between_calls = 1 # Seconds
 
