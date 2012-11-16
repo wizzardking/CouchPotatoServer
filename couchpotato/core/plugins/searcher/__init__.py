@@ -23,19 +23,19 @@ config = [{
                 {
                     'name': 'required_words',
                     'label': 'Required words',
-                    'default': '',
+                    'default': 'german',
                     'description': 'Ignore releases that don\'t contain at least one of these words.'
                 },
                 {
                     'name': 'ignored_words',
                     'label': 'Ignored words',
-                    'default': 'german, dutch, french, truefrench, danish, swedish, spanish, italian, korean, dubbed, swesub, korsub, dksubs',
+                    'default': 'dutch, french, truefrench, danish, swedish, spanish, italian, korean, swesub, korsub, dksubs',
                 },
                 {
                     'name': 'preferred_method',
                     'label': 'First search',
                     'description': 'Which of the methods do you prefer',
-                    'default': 'both',
+                    'default': 'nzb',
                     'type': 'dropdown',
                     'values': [('usenet & torrents', 'both'), ('usenet', 'nzb'), ('torrents', 'torrent')],
                 },
