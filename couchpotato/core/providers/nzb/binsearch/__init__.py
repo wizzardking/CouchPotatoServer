@@ -1,21 +1,20 @@
-from .main import Mysterbin
+from .main import BinSearch
 
 def start():
-    return Mysterbin()
+    return BinSearch()
 
 config = [{
-    'name': 'mysterbin',
+    'name': 'binsearch',
     'groups': [
         {
             'tab': 'searcher',
             'subtab': 'nzb_providers',
-            'name': 'Mysterbin',
-            'description': 'Free provider, less accurate. See <a href="https://www.mysterbin.com/">Mysterbin</a>',
+            'name': 'binsearch',
+            'description': 'Free provider, less accurate. See <a href="https://www.binsearch.info/">BinSearch</a>',
             'options': [
                 {
                     'name': 'enabled',
                     'type': 'enabler',
-                    'default': True,
                 },
             ],
         },

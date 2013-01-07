@@ -1,9 +1,8 @@
 from StringIO import StringIO
 from couchpotato import addView
 from couchpotato.core.event import fireEvent, addEvent
-from couchpotato.core.helpers.encoding import tryUrlencode, simplifyString, ss, \
-    toSafeString
-from couchpotato.core.helpers.variable import getExt
+from couchpotato.core.helpers.encoding import tryUrlencode, ss, toSafeString
+from couchpotato.core.helpers.variable import getExt, md5
 from couchpotato.core.logger import CPLog
 from couchpotato.environment import Env
 from flask.templating import render_template_string
@@ -35,7 +34,7 @@ class Plugin(object):
     http_failed_disabled = {}
 
     def registerPlugin(self):
-        addEvent('app.shutdown', self.doShutdown)
+        addEvent('app.do_shutdown', self.doShutdown)
         addEvent('plugin.running', self.isRunning)
 
     def conf(self, attr, value = None, default = None):
@@ -99,6 +98,7 @@ class Plugin(object):
 
     # http request
     def urlopen(self, url, timeout = 30, params = None, headers = None, opener = None, multipart = False, show_error = True):
+        url = ss(url)
 
         if not headers: headers = {}
         if not params: params = {}
@@ -114,8 +114,11 @@ class Plugin(object):
         # Don't try for failed requests
         if self.http_failed_disabled.get(host, 0) > 0:
             if self.http_failed_disabled[host] > (time.time() - 900):
-                log.info('Disabled calls to %s for 15 minutes because so many failed requests.', host)
-                raise Exception
+                log.info2('Disabled calls to %s for 15 minutes because so many failed requests.', host)
+                if not show_error:
+                    raise
+                else:
+                    return ''
             else:
                 del self.http_failed_request[host]
                 del self.http_failed_disabled[host]
@@ -127,8 +130,11 @@ class Plugin(object):
                 log.info('Opening multipart url: %s, params: %s', (url, [x for x in params.iterkeys()] if isinstance(params, dict) else 'with data'))
                 request = urllib2.Request(url, params, headers)
 
-                cookies = cookielib.CookieJar()
-                opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies), MultipartPostHandler)
+                if opener:
+                    opener.add_handler(MultipartPostHandler())
+                else:
+                    cookies = cookielib.CookieJar()
+                    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies), MultipartPostHandler)
 
                 response = opener.open(request, timeout = timeout)
             else:
@@ -219,7 +225,7 @@ class Plugin(object):
 
 
     def getCache(self, cache_key, url = None, **kwargs):
-        cache_key = simplifyString(cache_key)
+        cache_key = md5(ss(cache_key))
         cache = Env.get('cache').get(cache_key)
         if cache:
             if not Env.get('dev'): log.debug('Getting cache %s', cache_key)
@@ -239,8 +245,10 @@ class Plugin(object):
                     self.setCache(cache_key, data, timeout = cache_timeout)
                 return data
             except:
-                if not kwargs.get('show_error'):
+                if not kwargs.get('show_error', True):
                     raise
+
+                return ''
 
     def setCache(self, cache_key, value, timeout = 300):
         log.debug('Setting cache %s', cache_key)

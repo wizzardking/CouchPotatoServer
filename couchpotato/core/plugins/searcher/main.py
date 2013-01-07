@@ -3,7 +3,8 @@ from couchpotato.api import addApiView
 from couchpotato.core.event import addEvent, fireEvent, fireEventAsync
 from couchpotato.core.helpers.encoding import simplifyString, toUnicode
 from couchpotato.core.helpers.request import jsonified, getParam
-from couchpotato.core.helpers.variable import md5, getTitle
+from couchpotato.core.helpers.variable import md5, getTitle, splitString, \
+    possibleTitles
 from couchpotato.core.logger import CPLog
 from couchpotato.core.plugins.base import Plugin
 from couchpotato.core.settings.model import Movie, Release, ReleaseInfo
@@ -204,6 +205,10 @@ class Searcher(Plugin):
 
 
                 for nzb in sorted_results:
+                    if not quality_type.get('finish', False) and quality_type.get('wait_for', 0) > 0 and nzb.get('age') <= quality_type.get('wait_for', 0):
+                        log.info('Ignored, waiting %s days: %s', (quality_type.get('wait_for'), nzb['name']))
+                        continue
+
                     if nzb['status_id'] == ignored_status.get('id'):
                         log.info('Ignored: %s', nzb['name'])
                         continue
@@ -239,7 +244,7 @@ class Searcher(Plugin):
         filedata = None
         if data.get('download') and (ismethod(data.get('download')) or isfunction(data.get('download'))):
             filedata = data.get('download')(url = data.get('url'), nzb_id = data.get('id'))
-            if filedata is 'try_next':
+            if filedata == 'try_next':
                 return filedata
 
         successful = fireEvent('download', data = data, movie = movie, manual = manual, filedata = filedata, single = True)
@@ -293,7 +298,7 @@ class Searcher(Plugin):
         imdb_results = kwargs.get('imdb_results', False)
         retention = Env.setting('retention', section = 'nzb')
 
-        if nzb.get('seeds') is None and 0 < retention < nzb.get('age', 0):
+        if nzb.get('seeders') is None and 0 < retention < nzb.get('age', 0):
             log.info2('Wrong: Outside retention, age is %s, needs %s or lower: %s', (nzb['age'], retention, nzb['name']))
             return False
 
@@ -301,23 +306,28 @@ class Searcher(Plugin):
         movie_words = re.split('\W+', simplifyString(movie_name))
         nzb_name = simplifyString(nzb['name'])
         nzb_words = re.split('\W+', nzb_name)
-        required_words = [x.strip().lower() for x in self.conf('required_words').lower().split(',')]
+        required_words = splitString(self.conf('required_words').lower())
 
-        if self.conf('required_words') and not list(set(nzb_words) & set(required_words)):
+        req_match = 0
+        for req_set in required_words:
+            req = splitString(req_set, '&')
+            req_match += len(list(set(nzb_words) & set(req))) == len(req)
+
+        if self.conf('required_words') and req_match == 0:
             log.info2("Wrong: Required word missing: %s" % nzb['name'])
             return False
 
-        ignored_words = [x.strip().lower() for x in self.conf('ignored_words').split(',')]
-        blacklisted = list(set(nzb_words) & set(ignored_words))
+        ignored_words = splitString(self.conf('ignored_words').lower())
+        blacklisted = list(set(nzb_words) & set(ignored_words) - set(movie_words))
         if self.conf('ignored_words') and blacklisted:
             log.info2("Wrong: '%s' blacklisted words: %s" % (nzb['name'], ", ".join(blacklisted)))
             return False
 
         pron_tags = ['xxx', 'sex', 'anal', 'tits', 'fuck', 'porn', 'orgy', 'milf', 'boobs', 'erotica', 'erotic']
-        for p_tag in pron_tags:
-            if p_tag in nzb_words and p_tag not in movie_words:
-                log.info('Wrong: %s, probably pr0n', (nzb['name']))
-                return False
+        pron_words = list(set(nzb_words) & set(pron_tags) - set(movie_words))
+        if pron_words:
+            log.info('Wrong: %s, probably pr0n', (nzb['name']))
+            return False
 
         #qualities = fireEvent('quality.all', single = True)
         preferred_quality = fireEvent('quality.single', identifier = quality['identifier'], single = True)
@@ -353,20 +363,21 @@ class Searcher(Plugin):
             return True
 
         # Check if nzb contains imdb link
-        if self.checkIMDB([nzb['description']], movie['library']['identifier']):
+        if self.checkIMDB([nzb.get('description', '')], movie['library']['identifier']):
             return True
 
-        for movie_title in movie['library']['titles']:
-            movie_words = re.split('\W+', simplifyString(movie_title['title']))
+        for raw_title in movie['library']['titles']:
+            for movie_title in possibleTitles(raw_title['title']):
+                movie_words = re.split('\W+', simplifyString(movie_title))
 
-            if self.correctName(nzb['name'], movie_title['title']):
-                # if no IMDB link, at least check year range 1
-                if len(movie_words) > 2 and self.correctYear([nzb['name']], movie['library']['year'], 1):
-                    return True
+                if self.correctName(nzb['name'], movie_title):
+                    # if no IMDB link, at least check year range 1
+                    if len(movie_words) > 2 and self.correctYear([nzb['name']], movie['library']['year'], 1):
+                        return True
 
-                # if no IMDB link, at least check year
-                if len(movie_words) <= 2 and self.correctYear([nzb['name']], movie['library']['year'], 0):
-                    return True
+                    # if no IMDB link, at least check year
+                    if len(movie_words) <= 2 and self.correctYear([nzb['name']], movie['library']['year'], 0):
+                        return True
 
         log.info("Wrong: %s, undetermined naming. Looking for '%s (%s)'" % (nzb['name'], movie_name, movie['library']['year']))
         return False
@@ -388,6 +399,11 @@ class Searcher(Plugin):
             # Alt in words
             if list(set(nzb_words) & set(quality['alternative'])):
                 found[quality['identifier']] = True
+
+        # Try guessing via quality tags
+        guess = fireEvent('quality.guess', [nzb.get('name')], single = True)
+        if guess:
+            found[guess['identifier']] = True
 
         # Hack for older movies that don't contain quality tag
         year_name = fireEvent('scanner.name_year', name, single = True)
@@ -430,12 +446,16 @@ class Searcher(Plugin):
     def correctName(self, check_name, movie_name):
 
         check_names = [check_name]
-        try:
-            check_names.append(re.search(r'([\'"])[^\1]*\1', check_name).group(0))
-        except:
-            pass
 
-        for check_name in check_names:
+        # Match names between "
+        try: check_names.append(re.search(r'([\'"])[^\1]*\1', check_name).group(0))
+        except: pass
+
+        # Match longest name between []
+        try: check_names.append(max(check_name.split('['), key = len))
+        except: pass
+
+        for check_name in list(set(check_names)):
             check_movie = fireEvent('scanner.name_year', check_name, single = True)
 
             try:

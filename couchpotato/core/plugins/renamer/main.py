@@ -33,9 +33,13 @@ class Renamer(Plugin):
         addEvent('renamer.check_snatched', self.checkSnatched)
 
         addEvent('app.load', self.scan)
+        addEvent('app.load', self.checkSnatched)
 
-        fireEvent('schedule.interval', 'renamer.check_snatched', self.checkSnatched, minutes = self.conf('run_every'))
-        fireEvent('schedule.interval', 'renamer.check_snatched_forced', self.scan, hours = self.conf('force_every'))
+        if self.conf('run_every') > 0:
+            fireEvent('schedule.interval', 'renamer.check_snatched', self.checkSnatched, minutes = self.conf('run_every'))
+
+        if self.conf('force_every') > 0:
+            fireEvent('schedule.interval', 'renamer.check_snatched_forced', self.scan, hours = self.conf('force_every'))
 
     def scanView(self):
 
@@ -310,7 +314,10 @@ class Renamer(Plugin):
                         elif release.status_id is snatched_status.get('id'):
                             if release.quality.id is group['meta_data']['quality']['id']:
                                 log.debug('Marking release as downloaded')
-                                release.status_id = downloaded_status.get('id')
+                                try:
+                                    release.status_id = downloaded_status.get('id')
+                                except Exception, e:
+                                    log.error('Failed marking release as finished: %s %s', (e, traceback.format_exc()))
                                 db.commit()
 
                 # Remove leftover files
@@ -334,6 +341,7 @@ class Renamer(Plugin):
 
                 log.info('Removing "%s"', src)
                 try:
+                    src = ss(src)
                     if os.path.isfile(src):
                         os.remove(src)
 
@@ -347,7 +355,10 @@ class Renamer(Plugin):
 
             # Delete leftover folder from older releases
             for delete_folder in delete_folders:
-                self.deleteEmptyFolder(delete_folder, show_error = False)
+                try:
+                    self.deleteEmptyFolder(delete_folder, show_error = False)
+                except Exception, e:
+                    log.error('Failed to delete folder: %s %s', (e, traceback.format_exc()))
 
             # Rename all files marked
             group['renamed_files'] = []
@@ -488,6 +499,7 @@ class Renamer(Plugin):
         return string.replace('  ', ' ').replace(' .', '.')
 
     def deleteEmptyFolder(self, folder, show_error = True):
+        folder = ss(folder)
 
         loge = log.error if show_error else log.debug
         for root, dirs, files in os.walk(folder):

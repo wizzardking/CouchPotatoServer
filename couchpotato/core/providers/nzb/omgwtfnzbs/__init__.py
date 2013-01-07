@@ -1,17 +1,16 @@
-from .main import Newzbin
+from .main import OMGWTFNZBs
 
 def start():
-    return Newzbin()
+    return OMGWTFNZBs()
 
 config = [{
-    'name': 'newzbin',
+    'name': 'omgwtfnzbs',
     'groups': [
         {
             'tab': 'searcher',
             'subtab': 'nzb_providers',
-            'name': 'newzbin',
-            'description': 'See <a href="https://www.newzbin2.es/">Newzbin</a>',
-            'wizard': True,
+            'name': 'OMGWTFNZBs',
+            'description': 'See <a href="http://www.omgwtfnzbs.com/">OMGWTFNZBs</a>',
             'options': [
                 {
                     'name': 'enabled',
@@ -22,9 +21,9 @@ config = [{
                     'default': '',
                 },
                 {
-                    'name': 'password',
+                    'name': 'api_key',
+                    'label': 'Api Key',
                     'default': '',
-                    'type': 'password',
                 },
             ],
         },
