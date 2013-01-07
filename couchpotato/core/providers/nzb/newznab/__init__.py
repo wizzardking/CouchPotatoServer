@@ -26,7 +26,7 @@ config = [{
                 },
                 {
                     'name': 'host',
-                    'default': 'nzb.su,dognzb.cr,nzbs.org,https://index.nzbgeek.info',
+                    'default': 'kere.ws,nzbs.org,https://index.nzbgeek.info',
                     'description': 'The hostname of your newznab provider',
                 },
                 {
