@@ -8,9 +8,11 @@ config = [{
     'groups': [
         {
             'tab': 'searcher',
-            'subtab': 'torrent_providers',
+            'subtab': 'providers',
+            'list': 'torrent_providers',
             'name': 'PassThePopcorn',
             'description': 'See <a href="https://passthepopcorn.me">PassThePopcorn.me</a>',
+            'wizard': True,
             'options': [
                 {
                     'name': 'enabled',
@@ -35,6 +37,14 @@ config = [{
                 {
                     'name': 'passkey',
                     'default': '',
+                },
+                {
+                    'name': 'extra_score',
+                    'advanced': True,
+                    'label': 'Extra Score',
+                    'type': 'int',
+                    'default': 20,
+                    'description': 'Starting score for each release found via this provider.',
                 }
             ],
 }

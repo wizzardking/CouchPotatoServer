@@ -8,9 +8,11 @@ config = [{
     'groups': [
         {
             'tab': 'searcher',
-            'subtab': 'nzb_providers',
+            'subtab': 'providers',
+            'list': 'nzb_providers',
             'name': 'FTDWorld',
             'description': 'Free provider, less accurate. See <a href="http://ftdworld.net">FTDWorld</a>',
+            'wizard': True,
             'options': [
                 {
                     'name': 'enabled',
@@ -25,6 +27,14 @@ config = [{
                     'default': '',
                     'type': 'password',
                 },
+                {
+                    'name': 'extra_score',
+                    'advanced': True,
+                    'label': 'Extra Score',
+                    'type': 'int',
+                    'default': 0,
+                    'description': 'Starting score for each release found via this provider.',
+                }
             ],
         },
     ],

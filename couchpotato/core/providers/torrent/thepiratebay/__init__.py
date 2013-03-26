@@ -8,7 +8,8 @@ config = [{
     'groups': [
         {
             'tab': 'searcher',
-            'subtab': 'torrent_providers',
+            'subtab': 'providers',
+            'list': 'torrent_providers',
             'name': 'ThePirateBay',
             'description': 'The world\'s largest bittorrent tracker. See <a href="http://fucktimkuik.org/">ThePirateBay</a>',
             'wizard': True,
@@ -23,6 +24,14 @@ config = [{
                     'advanced': True,
                     'label': 'Proxy server',
                     'description': 'Domain for requests, keep empty to let CouchPotato pick.',
+                },
+                {
+                    'name': 'extra_score',
+                    'advanced': True,
+                    'label': 'Extra Score',
+                    'type': 'int',
+                    'default': 0,
+                    'description': 'Starting score for each release found via this provider.',
                 }
             ],
         }

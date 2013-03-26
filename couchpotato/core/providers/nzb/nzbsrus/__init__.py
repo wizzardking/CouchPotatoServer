@@ -8,10 +8,11 @@ config = [{
     'groups': [
         {
             'tab': 'searcher',
-            'subtab': 'nzb_providers',
+            'subtab': 'providers',
+            'list': 'nzb_providers',
             'name': 'nzbsrus',
             'label': 'Nzbsrus',
-            'description': 'See <a href="https://www.nzbsrus.com/">NZBsRus</a>',
+            'description': 'See <a href="https://www.nzbsrus.com/">NZBsRus</a>. <strong>You need a VIP account!</strong>',
             'wizard': True,
             'options': [
                 {
@@ -34,6 +35,14 @@ config = [{
                     'label': 'English only',
                     'description': 'Only search for English spoken movies on Nzbsrus',
                 },
+                {
+                    'name': 'extra_score',
+                    'advanced': True,
+                    'label': 'Extra Score',
+                    'type': 'int',
+                    'default': 0,
+                    'description': 'Starting score for each release found via this provider.',
+                }
             ],
         },
     ],

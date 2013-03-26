@@ -76,4 +76,3 @@ class NzbIndex(NZBProvider, RSS):
                 item['description'] = toUnicode(html.find('pre', attrs = {'id':'nfo0'}).text)
         except:
             pass
-

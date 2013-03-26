@@ -1,6 +1,7 @@
 from __future__ import with_statement
 from couchpotato.core.downloaders.base import Downloader
 from couchpotato.core.logger import CPLog
+from couchpotato.environment import Env
 import os
 import traceback
 
@@ -10,11 +11,7 @@ class Blackhole(Downloader):
 
     type = ['nzb', 'torrent', 'torrent_magnet']
 
-    def download(self, data = {}, movie = {}, manual = False, filedata = None):
-        if self.isDisabled(manual) or \
-        (not self.isCorrectType(data.get('type')) or \
-        (not self.conf('use_for') in ['both', 'torrent' if 'torrent' in data.get('type') else data.get('type')])):
-            return
+    def download(self, data = {}, movie = {}, filedata = None):
 
         directory = self.conf('directory')
         if not directory or not os.path.isdir(directory):
@@ -40,6 +37,7 @@ class Blackhole(Downloader):
                         log.info('Downloading %s to %s.', (data.get('type'), fullPath))
                         with open(fullPath, 'wb') as f:
                             f.write(filedata)
+                        os.chmod(fullPath, Env.getPermission('file'))
                         return True
                     else:
                         log.info('File %s already exists.', fullPath)
@@ -52,4 +50,23 @@ class Blackhole(Downloader):
             except:
                 log.info('Failed to download file %s: %s', (data.get('name'), traceback.format_exc()))
                 return False
+
         return False
+
+    def getEnabledDownloadType(self):
+        if self.conf('use_for') == 'both':
+            return super(Blackhole, self).getEnabledDownloadType()
+        elif self.conf('use_for') == 'torrent':
+            return ['torrent', 'torrent_magnet']
+        else:
+            return ['nzb']
+
+    def isEnabled(self, manual, data = {}):
+        for_type = ['both']
+        if data and 'torrent' in data.get('type'):
+            for_type.append('torrent')
+        elif data:
+            for_type.append(data.get('type'))
+
+        return super(Blackhole, self).isEnabled(manual, data) and \
+            ((self.conf('use_for') in for_type))

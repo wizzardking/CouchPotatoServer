@@ -8,7 +8,8 @@ config = [{
     'groups': [
         {
             'tab': 'searcher',
-            'subtab': 'nzb_providers',
+            'subtab': 'providers',
+            'list': 'nzb_providers',
             'name': 'newznab',
             'order': 10,
             'description': 'Enable <a href="http://newznab.com/" target="_blank">NewzNab providers</a> such as <a href="https://nzb.su" target="_blank">NZB.su</a>, \
@@ -30,12 +31,19 @@ config = [{
                     'description': 'The hostname of your newznab provider',
                 },
                 {
+                    'name': 'extra_score',
+                    'advanced': True,
+                    'label': 'Extra Score',
+                    'default': '0,0,0,0',
+                    'description': 'Starting score for each release found via this provider.',
+                },
+                {
                     'name': 'api_key',
                     'default': ',,,',
                     'label': 'Api Key',
                     'description': 'Can be found on your profile page',
                     'type': 'combined',
-                    'combine': ['use', 'host', 'api_key'],
+                    'combine': ['use', 'host', 'api_key', 'extra_score'],
                 },
             ],
         },

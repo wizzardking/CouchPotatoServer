@@ -1,6 +1,6 @@
 from couchpotato.core.helpers.encoding import tryUrlencode
 from couchpotato.core.helpers.rss import RSS
-from couchpotato.core.helpers.variable import cleanHost, splitString
+from couchpotato.core.helpers.variable import cleanHost, splitString, tryInt
 from couchpotato.core.logger import CPLog
 from couchpotato.core.providers.base import ResultList
 from couchpotato.core.providers.nzb.base import NZBProvider
@@ -69,13 +69,14 @@ class Newznab(NZBProvider, RSS):
 
             results.append({
                 'id': nzb_id,
-                'provider_extra': host['host'],
+                'provider_extra': urlparse(host['host']).hostname or host['host'],
                 'name': self.getTextElement(nzb, 'title'),
                 'age': self.calculateAge(int(time.mktime(parse(date).timetuple()))),
                 'size': int(self.getElement(nzb, 'enclosure').attrib['length']) / 1024 / 1024,
-                'url': (self.getUrl(host['host'], self.urls['download']) % nzb_id) + self.getApiExt(host),
-                'detail_url': '%sdetails/%s' % (cleanHost(host['host']), nzb_id),
+                'url': (self.getUrl(host['host'], self.urls['download']) % tryUrlencode(nzb_id)) + self.getApiExt(host),
+                'detail_url': '%sdetails/%s' % (cleanHost(host['host']), tryUrlencode(nzb_id)),
                 'content': self.getTextElement(nzb, 'description'),
+                'score': host['extra_score'],
             })
 
     def getHosts(self):
@@ -83,13 +84,15 @@ class Newznab(NZBProvider, RSS):
         uses = splitString(str(self.conf('use')))
         hosts = splitString(self.conf('host'))
         api_keys = splitString(self.conf('api_key'))
+        extra_score = splitString(self.conf('extra_score'))
 
         list = []
         for nr in range(len(hosts)):
             list.append({
                 'use': uses[nr],
                 'host': hosts[nr],
-                'api_key': api_keys[nr]
+                'api_key': api_keys[nr],
+                'extra_score': tryInt(extra_score[nr]) if len(extra_score) > nr else 0
             })
 
         return list
@@ -104,12 +107,23 @@ class Newznab(NZBProvider, RSS):
                 return result
 
     def getUrl(self, host, type):
+        if '?page=newznabapi' in host:
+            return cleanHost(host)[:-1] + '&t=' + type
+
         return cleanHost(host) + 'api?t=' + type
 
-    def isDisabled(self, host):
+    def isDisabled(self, host = None):
         return not self.isEnabled(host)
 
-    def isEnabled(self, host):
+    def isEnabled(self, host = None):
+
+        # Return true if at least one is enabled and no host is given
+        if host is None:
+            for host in self.getHosts():
+                if self.isEnabled(host):
+                    return True
+            return False
+
         return NZBProvider.isEnabled(self) and host['host'] and host['api_key'] and int(host['use'])
 
     def getApiExt(self, host):
@@ -136,6 +150,6 @@ class Newznab(NZBProvider, RSS):
                     self.limits_reached[host] = time.time()
                     return 'try_next'
 
-            log.error('Failed download from %s', (host, traceback.format_exc()))
+            log.error('Failed download from %s: %s', (host, traceback.format_exc()))
 
         return 'try_next'
